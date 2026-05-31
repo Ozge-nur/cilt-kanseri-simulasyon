@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cilt Kanseri & Güneş Koruyucu Maliyet Simülasyonu</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+    :root {
+      --bg: #0a0e17;
+      --panel: #111827;
+      --border: #1e2d40;
+      --accent: #f97316;
+      --accent2: #38bdf8;
+      --danger: #ef4444;
+      --safe: #22c55e;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --card: #0f1923;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 3rem;
+      background: var(--panel);
+      display: flex;
+      align-items: flex-start;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    header .tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    header p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      max-width: 560px;
+      line-height: 1.6;
+    }
+
+    .sources {
+      margin-left: auto;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-align: right;
+      line-height: 2;
+    }
+
+    .sources a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+
+    .sources a:hover { text-decoration: underline; }
+
+    .main {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      min-height: calc(100vh - 140px);
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .sidebar-section h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .control { margin-bottom: 1.1rem; }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.35rem;
+    }
+
+    .control-label { font-size: 0.78rem; font-weight: 600; }
+
+    .control-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .control-desc {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .control-source {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--accent2);
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 3px;
+      appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.52rem;
+      padding: 0.12rem 0.35rem;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+
+    .badge-risk    { background: rgba(239,68,68,0.15);  color: var(--danger); }
+    .badge-protect { background: rgba(34,197,94,0.15);  color: var(--safe); }
+    .badge-cost    { background: rgba(249,115,22,0.15); color: var(--accent); }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.7rem;
+    }
+
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .positive { color: var(--safe); }
+    .negative { color: var(--danger); }
+    .neutral  { color: var(--accent2); }
+
+    .btn-csv {
+      width: 100%;
+      padding: 0.7rem;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-csv:hover { background: var(--accent); color: var(--bg); }
+
+    .charts {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .chart-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.3rem;
+    }
+
+    .chart-header { margin-bottom: 1rem; }
+
+    .chart-header h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .chart-header p {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+    }
+
+    .conflict-banner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.76rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .conflict-banner strong { color: var(--text); }
+    .conflict-banner .cross { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
+
+    .data-table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+    }
+
+    th {
+      background: var(--card);
+      color: var(--muted);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.55rem 0.7rem;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th:first-child { text-align: left; }
+
+    td {
+      padding: 0.45rem 0.7rem;
+      border-bottom: 1px solid rgba(30,45,64,0.4);
+      text-align: right;
+    }
+
+    td:first-child { text-align: left; color: var(--muted); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .td-pos { color: var(--safe); }
+    .td-neg { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="tag">Halk Sağlığı · Sağlık Ekonomisi · Türkiye · 100.000 Kişi · 1980–2050</div>
+    <h1>Cilt Kanseri &amp; Güneş Koruyucu<br>Maliyet Simülasyonu</h1>
+    <p>Güneş koruyucu kullanımı cilt kanseri riskini düşürürken sağlık sistemine kendi maliyetini yükler. Bu simülasyon iki zıt eğrinin kesişim noktasını ve optimum dengeyi ortaya koyar.</p>
+  </div>
+  <div class="sources">
+    <div><a href="https://gco.iarc.fr/today/en/dataviz/tables?cancers=16&populations=792" target="_blank">GLOBOCAN 2022</a> — Türkiye cilt kanseri: 18/100.000</div>
+    <div><a href="https://www.who.int/news-room/questions-and-answers/item/radiation-the-known-health-effects-of-ultraviolet-radiation" target="_blank">WHO 2023</a> — SPF 30+ UV hasarını %97 azaltır</div>
+    <div><a href="https://ozonewatch.gsfc.nasa.gov" target="_blank">NASA Ozone Watch</a> — 1980'den bu yana %4 ozon kaybı</div>
+    <div><a href="https://www.turquiesante.com/en/skin-cancer-865" target="_blank">Piyasa tahmini 2024–25</a> — Erken evre cilt kanseri cerrahisi: ort. 45.000 TL/vaka</div>
+    <div><a href="https://www.trendyol.com/gunes-kremleri-x-c166853" target="_blank">Trendyol 2026</a> — SPF 50+ krem: 309–1.275 TL/ürün</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Kontrol Paneli</h3>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-label">
+            Güneş Koruyucu Kullanım Oranı
+            <span class="badge badge-protect">Koruyucu</span>
+            <span class="badge badge-cost">Maliyet</span>
+          </span>
+          <span class="control-value" id="val-spf">40%</span>
+        </div>
+        <div class="control-desc">Popülasyonun SPF 30+ kullanan yüzdesi. Kanseri azaltır ama kendi maliyetini artırır — temel çatışma buradan doğar.</div>
+        <div class="control-source">Kaynak: WHO 2023</div>
+        <input type="range" id="spf" min="0" max="100" value="40" step="1">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-label">
+            Ozon İncelmesi (her 10 yılda)
+            <span class="badge badge-risk">Risk</span>
+          </span>
+          <span class="control-value" id="val-ozon">2%</span>
+        </div>
+        <div class="control-desc">Her 10 yılda ek ozon kaybı. Ozon inceldikçe UV dozu artar, kanser riski yükselir.</div>
+        <div class="control-source">Kaynak: NASA Ozone Watch</div>
+        <input type="range" id="ozon" min="0" max="5" value="2" step="0.1">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-label">
+            Yüksek Riskli Genetik Grup
+            <span class="badge badge-risk">Risk</span>
+          </span>
+          <span class="control-value" id="val-genetik">15%</span>
+        </div>
+        <div class="control-desc">Açık ten (Fitzpatrick Tip I–II: kızıl/sarı saç, çilli, güneşte kolayca yanan) ve/veya CDKN2A gen mutasyonu taşıyan bireyler yüksek riskli grubu oluşturur. Bu grup normal popülasyona kıyasla 3.5 kat daha fazla cilt kanseri riski taşır. Türkiye için başlangıç değeri ~%15 olarak alınmıştır.</div>
+        <div class="control-source">Kaynak: Fitzpatrick Deri Tipi Skalası · CDKN2A mutasyon literatürü (Gamsizkan et al. 2014, Asian Pac J Cancer Prev)</div>
+        <input type="range" id="genetik" min="5" max="35" value="15" step="1">
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <span class="control-label">
+            Krem Fiyat Aralığı
+            <span class="badge badge-cost">Maliyet</span>
+          </span>
+        </div>
+        <div class="control-desc">Yıllık kişi başı SPF 30+ maliyeti (yaz ayları ~4 ay kullanım).</div>
+        <div class="control-source">Kaynak: Trendyol 2026 piyasa verisi</div>
+        <select id="fiyat" style="width:100%;padding:0.5rem 0.6rem;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;cursor:pointer;margin-top:0.3rem;">
+          <option value="0">Düşük — 300 TL/yıl</option>
+          <option value="1" selected>Orta — 500 TL/yıl</option>
+          <option value="2">Yüksek — 900 TL/yıl</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>2050 Projeksiyonu</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Toplam Vaka</div>
+          <div class="stat-value neutral" id="stat-vaka">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tedavi Maliyeti</div>
+          <div class="stat-value negative" id="stat-tedavi">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Koruyucu Maliyeti</div>
+          <div class="stat-value neutral" id="stat-koruyucu">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Net Kazanç</div>
+          <div class="stat-value" id="stat-net">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <button class="btn-csv" onclick="downloadCSV()">⬇ CSV İndir</button>
+    </div>
+  </aside>
+
+  <div class="charts">
+
+    <div class="conflict-banner" id="banner">Hesaplanıyor…</div>
+
+    <!-- CHART 1: Çatışan Maliyetler -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>Çatışan Maliyetler: Tedavi vs. Koruyucu (Yıllık, TL)</h2>
+        <p>Kanser tedavi maliyeti (kırmızı) azalırken koruyucu maliyeti (turuncu) artar. Kesişim noktası optimum denge yılını gösterir. Tedavi maliyeti yıllık yeni vakalar ile aktif tedavideki tüm hastaları kapsar (prevalans çarpanı: 6× — GLOBOCAN).</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartCost"></canvas>
+      </div>
+    </div>
+
+    <!-- CHART 2: Vaka Sayısı -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>Yıllık Yeni Cilt Kanseri Vakası (100.000 kişide)</h2>
+        <p>UV maruziyeti ve ozon incelmesi vakayı artırır, koruyucu kullanımı azaltır. Başlangıç: GLOBOCAN 2022 Türkiye verisi (18/100.000).</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartCases"></canvas>
+      </div>
+    </div>
+
+    <!-- CHART 3: Net Kazanç -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>Net Kazanç / Kayıp (Yıllık, TL)</h2>
+        <p>Önlenen kanser tedavi maliyeti eksi koruyucu maliyeti. Yeşil: sisteme kazandırır · Kırmızı: yük oluşturur.</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartNet"></canvas>
+      </div>
+    </div>
+
+    <!-- TABLO -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>Ham Veri (10 Yıllık Aralıklar)</h2>
+        <p>CSV İndir butonu ile tüm yıllık veriyi indirebilirsiniz.</p>
+      </div>
+      <div class="data-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Yıl</th>
+              <th>SPF Oranı (%)</th>
+              <th>UV Çarpanı</th>
+              <th>Yeni Vaka</th>
+              <th>Tedavi Maliyeti (TL)</th>
+              <th>Koruyucu Maliyeti (TL)</th>
+              <th>Net Kazanç (TL)</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── SABITLER (Gerçek Kaynaklara Dayalı) ───────────────────────────
+const POPULATION      = 100000;
+const START_YEAR      = 1980;
+const END_YEAR        = 2050;
+const BASE_PREV       = 18;        // GLOBOCAN 2022: Türkiye, 100.000'de 18 yeni vaka/yıl
+const PREVALENCE_MULT = 6;         // GLOBOCAN: prevalans/insidans oranı ~6 (aktif tedavideki toplam hasta)
+const TREATMENT_COST  = 45000;     // Türkiye özel hastane piyasa tahmini 2024-25: erken evre cilt kanseri cerrahisi
+const SPF_EFFICACY    = 0.97;      // WHO 2023: SPF 30+ UV hasarını %97 azaltır
+const OZONE_BASE_LOSS = 0.04;      // NASA Ozone Watch: 1980'den bu yana %4 kayıp
+const HIGH_RISK_MULT  = 3.5;       // Fitzpatrick / CDKN2A literatürü
+const BASELINE_SPF    = 0.05;      // 1980 Türkiye'de tahmini %5 kullanım
+// Trendyol 2026 piyasa verisi (yıllık kişi başı, yaz ayları 4 ay kullanım)
+const SPF_PRICES      = [300, 500, 900]; // Düşük / Orta / Yüksek
+const PRICE_LABELS    = ['Düşük (300 ₺)', 'Orta (500 ₺)', 'Yüksek (900 ₺)'];
+
+const YEARS = Array.from({length: END_YEAR - START_YEAR + 1}, (_, i) => START_YEAR + i);
+
+// ─── SİMÜLASYON ────────────────────────────────────────────────────
+function simulate(spfFinal, ozonRate, genetikRisk, spfPriceIdx) {
+  const spfPrice   = SPF_PRICES[spfPriceIdx];
+  const genetikFrac = genetikRisk / 100;
+  const normalFrac  = 1 - genetikFrac;
+  const baseRate    = BASE_PREV / 100000;
+
+  return YEARS.map(year => {
+    const t = year - START_YEAR;
+
+    // SPF kullanım oranı: 1980'de %5, doğrusal olarak hedef orana ulaşır
+    const spfRate = Math.min(1, BASELINE_SPF + (spfFinal / 100 - BASELINE_SPF) * (t / (END_YEAR - START_YEAR)));
+
+    // UV çarpanı: ozon kaybı her 10 yılda artıyor
+    // NASA: her %1 ozon kaybı ~%2 UV artışı
+    const ozonLoss   = OZONE_BASE_LOSS + (ozonRate / 100) * (t / 10);
+    const uvMult     = 1 + ozonLoss * 2;
+
+    // Efektif UV: SPF kullananlar %97 korunur
+    const uvReduction = spfRate * SPF_EFFICACY;
+    const effectiveUV = uvMult * (1 - uvReduction);
+
+    // Vaka hesabı (yıllık yeni vakalar)
+    const casesHigh   = POPULATION * genetikFrac * baseRate * HIGH_RISK_MULT * effectiveUV;
+    const casesNormal = POPULATION * normalFrac  * baseRate * effectiveUV;
+    const totalCases  = Math.round(casesHigh + casesNormal);
+
+    // Referans: hiç SPF kullanılmasa
+    const refUV    = uvMult;
+    const refCases = Math.round(POPULATION * (genetikFrac * baseRate * HIGH_RISK_MULT + normalFrac * baseRate) * refUV);
+    // Prevalans çarpanı: aktif tedavideki toplam hasta = yeni vaka × 6 (GLOBOCAN prevalans/insidans oranı)
+    const refCost  = refCases * PREVALENCE_MULT * TREATMENT_COST;
+
+    // Maliyetler
+    // Tedavi maliyeti: yeni vakalar + aktif tedavideki mevcut hastalar
+    const treatCost = totalCases * PREVALENCE_MULT * TREATMENT_COST;
+    const spfCost   = Math.round(POPULATION * spfRate * spfPrice);
+    const netGain   = (refCost - treatCost) - spfCost;
+
+    return {
+      year,
+      spfRate: Math.round(spfRate * 100),
+      uvMult: uvMult.toFixed(3),
+      totalCases,
+      treatCost,
+      spfCost,
+      netGain
+    };
+  });
+}
+
+// ─── CHART KURULUMU ────────────────────────────────────────────────
+const commonOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 350 },
+  plugins: {
+    legend: { labels: { color: '#94a3b8', font: { family: 'IBM Plex Mono', size: 11 }, boxWidth: 12 } },
+    tooltip: {
+      backgroundColor: '#0f1923', borderColor: '#1e2d40', borderWidth: 1,
+      titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+      titleFont: { family: 'IBM Plex Mono' }, bodyFont: { family: 'IBM Plex Mono', size: 11 }
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 10 }, grid: { color: 'rgba(30,45,64,0.6)' } },
+    y: { ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: 'rgba(30,45,64,0.6)' } }
+  }
+};
+
+function milOpts() {
+  return { ...commonOpts, scales: { ...commonOpts.scales, y: { ...commonOpts.scales.y, ticks: { ...commonOpts.scales.y.ticks, callback: v => (v/1000000).toFixed(1) + 'M ₺' } } } };
+}
+
+const chartCost = new Chart(document.getElementById('chartCost'), {
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'Kanser Tedavi Maliyeti', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true },
+    { label: 'Güneş Koruyucu Maliyeti', data: [], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.07)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true }
+  ]},
+  options: milOpts()
+});
+
+const chartCases = new Chart(document.getElementById('chartCases'), {
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'Yeni Vaka (yıllık)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.07)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true }
+  ]},
+  options: { ...commonOpts }
+});
+
+const chartNet = new Chart(document.getElementById('chartNet'), {
+  type: 'bar',
+  data: { labels: [], datasets: [
+    { label: 'Net Kazanç (TL)', data: [], backgroundColor: [], borderRadius: 3 }
+  ]},
+  options: milOpts()
+});
+
+// ─── YARDIMCI ──────────────────────────────────────────────────────
+const fmt = n => new Intl.NumberFormat('tr-TR').format(n);
+
+let simData = [];
+
+function update() {
+  const spfFinal   = parseInt(document.getElementById('spf').value);
+  const ozonRate   = parseFloat(document.getElementById('ozon').value);
+  const genetik    = parseInt(document.getElementById('genetik').value);
+  const fiyatIdx   = parseInt(document.getElementById('fiyat').value);
+
+  document.getElementById('val-spf').textContent     = spfFinal + '%';
+  document.getElementById('val-ozon').textContent    = ozonRate.toFixed(1) + '%';
+  document.getElementById('val-genetik').textContent = genetik + '%';
+
+  simData = simulate(spfFinal, ozonRate, genetik, fiyatIdx);
+
+  const labels = simData.map(d => d.year);
+
+  // Chart 1
+  chartCost.data.labels = labels;
+  chartCost.data.datasets[0].data = simData.map(d => d.treatCost);
+  chartCost.data.datasets[1].data = simData.map(d => d.spfCost);
+  chartCost.update();
+
+  // Chart 2
+  chartCases.data.labels = labels;
+  chartCases.data.datasets[0].data = simData.map(d => d.totalCases);
+  chartCases.update();
+
+  // Chart 3
+  const netData   = simData.map(d => d.netGain);
+  const netColors = netData.map(v => v >= 0 ? 'rgba(34,197,94,0.75)' : 'rgba(239,68,68,0.75)');
+  chartNet.data.labels = labels;
+  chartNet.data.datasets[0].data = netData;
+  chartNet.data.datasets[0].backgroundColor = netColors;
+  chartNet.update();
+
+  // Kesişim
+  let crossYear = null;
+  for (let i = 1; i < simData.length; i++) {
+    if (simData[i-1].treatCost > simData[i-1].spfCost && simData[i].treatCost <= simData[i].spfCost) {
+      crossYear = simData[i].year; break;
+    }
+  }
+
+  const last = simData[simData.length - 1];
+  const banner = document.getElementById('banner');
+  if (crossYear) {
+    banner.innerHTML = `<strong>Kesişim Noktası:</strong> <span class="cross">${crossYear}</span> yılında koruyucu maliyeti tedavi maliyetini geçiyor. Bu yıldan itibaren SPF kullanımını artırmak sisteme mali yük bindiriyor — ancak sağlık kazanımı devam ediyor.`;
+  } else if (last.treatCost > last.spfCost) {
+    banner.innerHTML = `<strong>Kesişim Yok:</strong> 2050'ye kadar tedavi maliyeti koruyucu maliyetinin üzerinde kalıyor. Mevcut parametrelerle SPF kullanımını artırmak sisteme <span class="cross">net kazandırıyor</span>.`;
+  } else {
+    banner.innerHTML = `<strong>Uyarı:</strong> Koruyucu maliyeti tedavi maliyetini sürekli aşıyor. SPF kullanım oranını düşürün ya da fiyat aralığını değiştirin.`;
+  }
+
+  // Stat cards
+  document.getElementById('stat-vaka').textContent     = fmt(last.totalCases);
+  document.getElementById('stat-tedavi').textContent   = fmt(last.treatCost) + ' ₺';
+  document.getElementById('stat-koruyucu').textContent = fmt(last.spfCost) + ' ₺';
+  const netEl = document.getElementById('stat-net');
+  netEl.textContent = (last.netGain >= 0 ? '+' : '') + fmt(last.netGain) + ' ₺';
+  netEl.className   = 'stat-value ' + (last.netGain >= 0 ? 'positive' : 'negative');
+
+  // Tablo
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  simData.filter(d => d.year % 10 === 0).forEach(d => {
+    const cls = d.netGain >= 0 ? 'td-pos' : 'td-neg';
+    const tr  = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.year}</td>
+      <td>${d.spfRate}%</td>
+      <td>${d.uvMult}</td>
+      <td>${fmt(d.totalCases)}</td>
+      <td>${fmt(d.treatCost)} ₺</td>
+      <td>${fmt(d.spfCost)} ₺</td>
+      <td class="${cls}">${d.netGain >= 0 ? '+' : ''}${fmt(d.netGain)} ₺</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─── CSV ───────────────────────────────────────────────────────────
+function downloadCSV() {
+  const header = ['Yil','SPF_Orani_Yuzde','UV_Carpan','Yeni_Vaka','Tedavi_Maliyeti_TL','Koruyucu_Maliyeti_TL','Net_Kazanc_TL'];
+  const rows   = simData.map(d => [d.year, d.spfRate, d.uvMult, d.totalCases, d.treatCost, d.spfCost, d.netGain]);
+  const csv    = [header, ...rows].map(r => r.join(',')).join('\n');
+  const a      = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})), download: 'cilt_kanseri_sim.csv' });
+  a.click();
+}
+
+// ─── EVENTS ────────────────────────────────────────────────────────
+['spf','ozon','genetik'].forEach(id => document.getElementById(id).addEventListener('input', update));
+document.getElementById('fiyat').addEventListener('change', update);
+update();
+</script>
+</body>
+</html>
